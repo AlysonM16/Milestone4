@@ -1,4 +1,3 @@
-import streamlit as st
 import dash
 from dash import dcc, html, Input, Output, State, dash_table
 import pandas as pd
@@ -13,7 +12,6 @@ from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 import numpy as np
-st.text("")
 app = dash.Dash(__name__)
 app.title = "CS301 Milestone 4 Group 12"
 global_df = None

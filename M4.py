@@ -1,9 +1,10 @@
 import dash
-from dash import dcc, html, Input, Output, State, dash_table
 import pandas as pd
 import plotly.express as px
+import numpy as np
 import io
 import base64
+from dash import dcc, html, Input, Output, State, dash_table
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
@@ -11,7 +12,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
-import numpy as np
+
 app = dash.Dash(__name__)
 app.title = "CS301 Milestone 4 Group 12"
 global_df = None
@@ -21,18 +22,17 @@ target_variable = None
 
 # Layout
 app.layout = html.Div([
-    html.H1("Upload File", style={'textAlign': 'center'}),
+    html.H1("CS301 Milestone 4 Group 12", style={'textAlign': 'center'}),
 
     # Upload
     dcc.Upload(
         id='upload-data',
-        children=html.Div(['Drag and Drop or ', html.A('Select Files')]),
+        children=html.A(['Drag and Drop or Select Files']),
         style={
-            'width': '100%', 'height': '60px', 'lineHeight': '60px',
-            'borderWidth': '1px', 'borderStyle': 'dashed', 'borderRadius': '5px',
-            'textAlign': 'center', 'margin': '10px'
+            'width': '50%', 'height': '60px', 'lineHeight': '60px', 'borderWidth': '1px',
+            'borderStyle': 'dashed', 'borderRadius': '5px', 'textAlign': 'center',
+            'margin-top': '10px', 'margin-botton': '10px', 'margin-left': '25%', 'margin-right': '25%'
         },
-        multiple=False
     ),
     # Select Target
     html.Div([
@@ -69,7 +69,7 @@ app.layout = html.Div([
     # Predict
     html.Div([
         html.H4("Predict Target Value"),
-        dcc.Input(id='predict-input', type='text', placeholder="Enter feature values, comma-separated"),
+        dcc.Input(id='predict-input', type='text', placeholder="e.x. 20,dinner)"),
         html.Button("Predict", id='predict-button', n_clicks=0, style={'margin': '10px'}),
         html.Div(id='predict-output', style={'fontSize': '18px'})
     ])
@@ -89,17 +89,14 @@ def upload_file(contents, filename):
     if contents is None:
         return [], [], []
 
-    # Would like to try and change from io if possible, todo later. Generally needs to be reworked
     content_type, content_string = contents.split(',')
-    decoded = io.StringIO(io.BytesIO(base64.b64decode(content_string)).read().decode('utf-8'))
-    global_df = pd.read_csv(decoded)
+    decoded = base64.b64decode(content_string)
+    global_df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
 
     numerical_cols = global_df.select_dtypes(include=['number']).columns.tolist()
     categorical_cols = global_df.select_dtypes(exclude=['number']).columns.tolist()
 
-    return [{'label': col, 'value': col} for col in numerical_cols], \
-           [{'label': col, 'value': col} for col in categorical_cols], \
-           [{'label': col, 'value': col} for col in global_df.columns if col != target_variable]
+    return [{'label': col, 'value': col} for col in numerical_cols], [{'label': col, 'value': col} for col in categorical_cols], [{'label': col, 'value': col} for col in global_df.columns if col != target_variable]
 
 
 # Bar Charts
@@ -131,7 +128,7 @@ def update_charts(target, category):
     return fig1, fig2
 
 
-# Train Model
+# Train Model, TODO
 @app.callback(
     Output('r2-score-output', 'children'),
     Input('train-button', 'n_clicks'),
@@ -169,7 +166,7 @@ def train_model(n_clicks, selected_features):
     return f"The R² score is: {r2:.2f}"
 
 
-# Predict Callback
+# Predict
 @app.callback(
     Output('predict-output', 'children'),
     Input('predict-button', 'n_clicks'),

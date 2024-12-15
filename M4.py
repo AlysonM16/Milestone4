@@ -127,14 +127,15 @@ def update_charts(target, category):
 
     return fig1, fig2
 
-
-# Train Model, TODO
+# Train Model, Gradient Boost Regression Model
 @app.callback(
     Output('r2-score-output', 'children'),
     Input('train-button', 'n_clicks'),
     State('feature-checklist', 'value')
 )
 def train_model(n_clicks, selected_features):
+    from sklearn.ensemble import GradientBoostingRegressor
+    from sklearn.model_selection import GridSearchCV
     global model
     if n_clicks == 0 or not selected_features or target_variable is None:
         return ""
@@ -146,6 +147,7 @@ def train_model(n_clicks, selected_features):
     num_features = X.select_dtypes(include=['number']).columns
     cat_features = X.select_dtypes(exclude=['number']).columns
 
+    # Preprocessing
     preprocessor = ColumnTransformer(transformers=[
         ('num', StandardScaler(), num_features),
         ('cat', Pipeline(steps=[
@@ -154,16 +156,29 @@ def train_model(n_clicks, selected_features):
         ]), cat_features)
     ])
 
+    # Gradient Boosting Regressor with Hyperparameter Tuning
+    gbr = GradientBoostingRegressor(random_state=42)
+    param_grid = {
+        'regressor__n_estimators': [100, 200],
+        'regressor__learning_rate': [0.05, 0.1],
+        'regressor__max_depth': [3, 5]
+    }
     model = Pipeline(steps=[
         ('preprocessor', preprocessor),
-        ('regressor', LinearRegression())
+        ('regressor', gbr)
     ])
 
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    r2 = r2_score(y_test, y_pred)
+    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, scoring='r2', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+    best_model = grid_search.best_estimator_
 
-    return f"The R² score is: {r2:.2f}"
+    # Test the best model
+    y_pred = best_model.predict(X_test)
+    r2 = r2_score(y_test, y_pred)
+    model = best_model  # Save the best model globally
+
+    return f"The R² score is: {r2:.2f}. Model Parameters: {grid_search.best_params_}"
+
 
 
 # Predict

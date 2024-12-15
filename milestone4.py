@@ -14,6 +14,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 
 app = dash.Dash(__name__)
+server=app.server
 app.title = "CS301 Milestone 4 Group 12"
 global_df = None
 model = None

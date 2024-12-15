@@ -12,7 +12,6 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler, PolynomialFeatu
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
-
 app = dash.Dash(__name__)
 server=app.server
 app.title = "CS301 Milestone 4 Group 12"
@@ -195,4 +194,4 @@ def predict(n_clicks, input_values, selected_features):
         return f"Error: {str(e)}"
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)

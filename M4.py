@@ -128,6 +128,7 @@ def update_charts(target, category):
     return fig1, fig2
 
 # Train Model, Gradient Boost Regression Model
+# Train Model
 @app.callback(
     Output('r2-score-output', 'children'),
     Input('train-button', 'n_clicks'),
@@ -179,9 +180,6 @@ def train_model(n_clicks, selected_features):
 
     return f"The R² score is: {r2:.2f}. Model Parameters: {grid_search.best_params_}"
 
-
-
-# Predict
 @app.callback(
     Output('predict-output', 'children'),
     Input('predict-button', 'n_clicks'),
@@ -189,22 +187,29 @@ def train_model(n_clicks, selected_features):
     State('feature-checklist', 'value')
 )
 def predict(n_clicks, input_values, selected_features):
+    global model
     if n_clicks == 0 or not input_values or model is None:
-        return ""
+        return "Please provide input values and train the model first."
 
     try:
+        # Split input values and map to selected features
         input_list = input_values.split(',')
+        if len(input_list) != len(selected_features):
+            return f"Error: Expected {len(selected_features)} values but got {len(input_list)}."
+
+        # Create input DataFrame for prediction
         input_data = pd.DataFrame([input_list], columns=selected_features)
 
-        for col in input_data.select_dtypes(include=['object']).columns:
+        # Preprocess numerical columns to float type
+        for col in input_data.columns:
             if col in global_df.select_dtypes(include=['number']).columns:
                 input_data[col] = input_data[col].astype(float)
 
+        # Make prediction
         prediction = model.predict(input_data)[0]
-
         return f"Predicted target value: {prediction:.2f}"
     except Exception as e:
-        return f"Error: {str(e)}"
+        return f"Error during prediction: {str(e)}"
 
 if __name__ == '__main__':
     app.run_server(debug=True)

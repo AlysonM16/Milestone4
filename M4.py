@@ -127,7 +127,6 @@ def update_charts(target, category):
 
     return fig1, fig2
 
-# Train Model, Gradient Boost Regression Model
 # Train Model
 @app.callback(
     Output('r2-score-output', 'children'),
@@ -148,7 +147,6 @@ def train_model(n_clicks, selected_features):
     num_features = X.select_dtypes(include=['number']).columns
     cat_features = X.select_dtypes(exclude=['number']).columns
 
-    # Preprocessing
     preprocessor = ColumnTransformer(transformers=[
         ('num', StandardScaler(), num_features),
         ('cat', Pipeline(steps=[
@@ -157,7 +155,6 @@ def train_model(n_clicks, selected_features):
         ]), cat_features)
     ])
 
-    # Gradient Boosting Regressor with Hyperparameter Tuning
     gbr = GradientBoostingRegressor(random_state=42)
     param_grid = {
         'regressor__n_estimators': [100, 200],
@@ -173,13 +170,15 @@ def train_model(n_clicks, selected_features):
     grid_search.fit(X_train, y_train)
     best_model = grid_search.best_estimator_
 
-    # Test the best model
     y_pred = best_model.predict(X_test)
     r2 = r2_score(y_test, y_pred)
-    model = best_model  # Save the best model globally
+    model = best_model
 
     return f"The R² score is: {r2:.2f}. Model Parameters: {grid_search.best_params_}"
 
+
+
+# Predict
 @app.callback(
     Output('predict-output', 'children'),
     Input('predict-button', 'n_clicks'),
@@ -187,29 +186,22 @@ def train_model(n_clicks, selected_features):
     State('feature-checklist', 'value')
 )
 def predict(n_clicks, input_values, selected_features):
-    global model
     if n_clicks == 0 or not input_values or model is None:
-        return "Please provide input values and train the model first."
+        return ""
 
     try:
-        # Split input values and map to selected features
         input_list = input_values.split(',')
-        if len(input_list) != len(selected_features):
-            return f"Error: Expected {len(selected_features)} values but got {len(input_list)}."
-
-        # Create input DataFrame for prediction
         input_data = pd.DataFrame([input_list], columns=selected_features)
 
-        # Preprocess numerical columns to float type
-        for col in input_data.columns:
+        for col in input_data.select_dtypes(include=['object']).columns:
             if col in global_df.select_dtypes(include=['number']).columns:
                 input_data[col] = input_data[col].astype(float)
 
-        # Make prediction
         prediction = model.predict(input_data)[0]
+
         return f"Predicted target value: {prediction:.2f}"
     except Exception as e:
-        return f"Error during prediction: {str(e)}"
+        return f"Error: {str(e)}"
 
 if __name__ == '__main__':
     app.run_server(debug=True)

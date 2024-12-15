@@ -8,7 +8,7 @@ from dash import dcc, html, Input, Output, State, dash_table
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.preprocessing import OneHotEncoder, StandardScaler, PolynomialFeatures
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
@@ -127,58 +127,46 @@ def update_charts(target, category):
 
     return fig1, fig2
 
-# Train Model
+
+# Train Model, TODO
 @app.callback(
     Output('r2-score-output', 'children'),
     Input('train-button', 'n_clicks'),
     State('feature-checklist', 'value')
 )
 def train_model(n_clicks, selected_features):
-    from sklearn.ensemble import GradientBoostingRegressor
-    from sklearn.model_selection import GridSearchCV
     global model
-
-    if n_clicks == 0 or not selected_features or not target_variable:
+    if n_clicks == 0 or not selected_features or target_variable is None:
         return ""
+
     X = global_df[selected_features]
     y = global_df[target_variable]
-
-    if X.empty or y.empty:
-        return "Error: Selected features or target variable are empty."
-
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
     num_features = X.select_dtypes(include=['number']).columns
     cat_features = X.select_dtypes(exclude=['number']).columns
 
     preprocessor = ColumnTransformer(transformers=[
-        ('num', StandardScaler(), num_features),
+        ('num', Pipeline(steps=[
+            ('poly', PolynomialFeatures(degree=4)),
+            ('scaler', StandardScaler())
+        ]), num_features),
         ('cat', Pipeline(steps=[
             ('imputer', SimpleImputer(strategy='most_frequent')),
             ('onehot', OneHotEncoder(handle_unknown='ignore'))
         ]), cat_features)
     ])
 
-    gbr = GradientBoostingRegressor(random_state=42)
-    param_grid = {
-        'regressor__n_estimators': [100, 200],
-        'regressor__learning_rate': [0.05, 0.1],
-        'regressor__max_depth': [3, 5]
-    }
     model = Pipeline(steps=[
         ('preprocessor', preprocessor),
-        ('regressor', gbr)
+        ('regressor', LinearRegression())
     ])
 
-    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, scoring='r2', n_jobs=-1)
-    grid_search.fit(X_train, y_train)
-    best_model = grid_search.best_estimator_
-
-    y_pred = best_model.predict(X_test)
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
     r2 = r2_score(y_test, y_pred)
-    model = best_model
 
-    return f"The R² score is: {r2:.2f}."
+    return f"The R² score is: {r2:.2f}"
+
 
 # Predict
 @app.callback(
